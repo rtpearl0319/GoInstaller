@@ -15,8 +15,9 @@ const (
 	repo       = "GPSrvtTab"
 	dllName    = "GPSrvtTab.dll"
 	addinName  = "GPSTab.addin"
-	addinsPath = `C:/ProgramData/Autodesk/Revit/Addins`
-	dllPath    = `C:/Users/rtpho/Documents/RevitAddins/GPSrvtTab.dll`
+	addinsPath = `/ProgramData/Autodesk/Revit/Addins`
+	dllsPath   = `/ProgramData/Autodesk/Revit/DLLs`
+	dllPath    = dllsPath + `/GPSrvtTab.dll`
 )
 
 var (
@@ -101,17 +102,21 @@ func installAddin(addinData []byte) error {
 				continue
 			}
 		}
-
 		if err := os.WriteFile(addinPath, addinData, 0644); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 func installDLL(dllData []byte) error {
 	hashDllOnline := xxhash.Sum64(dllData)
 
+	if _, err := os.Stat(dllsPath); os.IsNotExist(err) {
+		err := os.Mkdir(dllsPath, 0755)
+		if err != nil {
+			return err
+		}
+	}
 	if _, err := os.Stat(dllPath); !os.IsNotExist(err) {
 		dat, err := os.ReadFile(dllPath)
 		check(err)
