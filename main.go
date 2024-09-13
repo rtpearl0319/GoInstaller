@@ -32,11 +32,6 @@ type Release struct {
 	} `json:"assets"`
 }
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
 func main() {
 	// GitHub API URL to get the latest release
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
@@ -94,7 +89,9 @@ func installAddin(addinData []byte) error {
 		if _, err := os.Stat(addinPath); !os.IsNotExist(err) {
 
 			dat, err := os.ReadFile(addinPath)
-			check(err)
+			if err != nil {
+				return fmt.Errorf("error reading Addin file: %v", err)
+			}
 
 			hashAddinLocal := xxhash.Sum64(dat)
 
@@ -103,7 +100,7 @@ func installAddin(addinData []byte) error {
 			}
 		}
 		if err := os.WriteFile(addinPath, addinData, 0644); err != nil {
-			return err
+			return fmt.Errorf("error writing Addin file: %v", err)
 		}
 	}
 	return nil
@@ -114,12 +111,14 @@ func installDLL(dllData []byte) error {
 	if _, err := os.Stat(dllsPath); os.IsNotExist(err) {
 		err := os.Mkdir(dllsPath, 0755)
 		if err != nil {
-			return err
+			return fmt.Errorf("error creating DLL directory: %v", err)
 		}
 	}
 	if _, err := os.Stat(dllPath); !os.IsNotExist(err) {
 		dat, err := os.ReadFile(dllPath)
-		check(err)
+		if err != nil {
+			return fmt.Errorf("error reading DLL file: %v", err)
+		}
 
 		hashDllLocal := xxhash.Sum64(dat)
 
@@ -129,7 +128,7 @@ func installDLL(dllData []byte) error {
 	}
 	err := os.WriteFile(dllPath, dllData, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("error writing DLL file: %v", err)
 	}
 	return nil
 }
@@ -177,7 +176,7 @@ func downloadFile(url string) ([]byte, error) {
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error downloading file: %v\n", err)
 	}
 	defer resp.Body.Close()
 	// Check server response
@@ -187,7 +186,7 @@ func downloadFile(url string) ([]byte, error) {
 	// Get bytes
 	byteData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading file: %v", err)
 	}
 	return byteData, nil
 }
