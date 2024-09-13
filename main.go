@@ -88,7 +88,6 @@ func installAddin(addinData []byte) error {
 			return nil
 		}
 	}
-
 	err := os.WriteFile(addinPath, addinData, 0644)
 	if err != nil {
 		return err
