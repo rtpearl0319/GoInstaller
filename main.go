@@ -7,15 +7,20 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 )
 
 const (
-	owner     = "rtpearl0319"
-	repo      = "GPSrvtTab"
-	dllName   = "GPSrvtTab.dll"
-	addinName = "GPSTab.addin"
-	addinPath = `C:\ProgramData\Autodesk\Revit\Addins\2023\GPSTab.addin`
-	dllPath   = `C:\Users\rtpho\Documents\RevitAddins\GPSrvtTab.dll`
+	owner      = "rtpearl0319"
+	repo       = "GPSrvtTab"
+	dllName    = "GPSrvtTab.dll"
+	addinName  = "GPSTab.addin"
+	addinsPath = `C:/ProgramData/Autodesk/Revit/Addins`
+	dllPath    = `C:/Users/rtpho/Documents/RevitAddins/GPSrvtTab.dll`
+)
+
+var (
+	versions = []string{"2024", "2023", "2022"}
 )
 
 type Release struct {
@@ -78,7 +83,29 @@ func main() {
 func installAddin(addinData []byte) error {
 	hashAddinOnline := xxhash.Sum64(addinData)
 
-	if _, err := os.Stat(addinPath); !os.IsNotExist(err) {
+	for _, version := range versions {
+
+		if _, err := os.Stat(path.Join(addinsPath, version)); !os.IsNotExist(err) {
+
+			if _, err := os.Stat(path.Join(addinsPath, version, addinName)); os.IsNotExist(err) {
+
+				dat, err := os.ReadFile(path.Join(addinsPath, version, addinName))
+				check(err)
+
+				hashAddinLocal := xxhash.Sum64(dat)
+
+				if hashAddinOnline == hashAddinLocal {
+					continue
+				}
+			}
+			err := os.WriteFile(path.Join(addinsPath, version, addinName), addinData, 0644)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	/*if _, err := os.Stat(addinPath); !os.IsNotExist(err) {
 		dat, err := os.ReadFile(addinPath)
 		check(err)
 
@@ -91,7 +118,7 @@ func installAddin(addinData []byte) error {
 	err := os.WriteFile(addinPath, addinData, 0644)
 	if err != nil {
 		return err
-	}
+	}*/
 	return nil
 }
 func installDLL(dllData []byte) error {
