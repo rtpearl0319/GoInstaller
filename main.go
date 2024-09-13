@@ -6,13 +6,16 @@ import (
 	"github.com/cespare/xxhash"
 	"io"
 	"net/http"
+	"os"
 )
 
 const (
 	owner     = "rtpearl0319"
-	repo      = "GoInstaller"
+	repo      = "GPSrvtTab"
 	dllName   = "GPSrvtTab.dll"
-	addinName = "GPSrvtTab.addin"
+	addinName = "GPSTab.addin"
+	addinPath = `C:\ProgramData\Autodesk\Revit\Addins\2023\GPSTab.addin`
+	dllPath   = `C:\Users\rtpho\Documents\RevitAddins\GPSrvtTab.dll`
 )
 
 type Release struct {
@@ -23,10 +26,14 @@ type Release struct {
 	} `json:"assets"`
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
 func main() {
 	// GitHub API URL to get the latest release
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
-
 	// Fetch the latest release data
 	resp, err := http.Get(apiURL)
 	if err != nil {
@@ -39,34 +46,75 @@ func main() {
 		fmt.Printf("Error: received non-OK HTTP status %d\n", resp.StatusCode)
 		return
 	}
-
 	// Decode the JSON response
 	var release Release
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		fmt.Printf("Error decoding JSON: %v\n", err)
 		return
 	}
-
 	// Download the Addin file
 	addinData, err := downloadAddin(release)
 	if err != nil {
 		fmt.Printf("Error downloading Addin: %v\n", err)
 		return
 	}
-
 	// Download the DLL file
 	dllData, err := downloadDLL(release)
 	if err != nil {
 		fmt.Printf("Error downloading DLL: %v\n", err)
 		return
 	}
-
-	hashAddin := xxhash.Sum64(addinData)
-	hashDll := xxhash.Sum64(dllData)
+	err = installAddin(addinData)
+	if err != nil {
+		fmt.Printf("Error Installing Addin: %v\n", err)
+		return
+	}
+	err = installDLL(dllData)
+	if err != nil {
+		fmt.Printf("Error Installing DLL: %v\n", err)
+		return
+	}
 }
+func installAddin(addinData []byte) error {
+	hashAddinOnline := xxhash.Sum64(addinData)
 
+	if _, err := os.Stat(addinPath); !os.IsNotExist(err) {
+		dat, err := os.ReadFile(addinPath)
+		check(err)
+
+		hashAddinLocal := xxhash.Sum64(dat)
+
+		if hashAddinOnline == hashAddinLocal {
+			return nil
+		}
+	}
+
+	err := os.WriteFile(addinPath, addinData, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func installDLL(dllData []byte) error {
+	hashDllOnline := xxhash.Sum64(dllData)
+
+	if _, err := os.Stat(dllPath); !os.IsNotExist(err) {
+		dat, err := os.ReadFile(dllPath)
+		check(err)
+
+		hashDllLocal := xxhash.Sum64(dat)
+
+		if hashDllOnline == hashDllLocal {
+			return nil
+		}
+	}
+	err := os.WriteFile(dllPath, dllData, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func downloadAddin(release Release) ([]byte, error) {
-
 	// Find the Addin asset
 	var addinAsset string
 	for _, asset := range release.Assets {
@@ -75,22 +123,17 @@ func downloadAddin(release Release) ([]byte, error) {
 			break
 		}
 	}
-
 	if addinAsset == "" {
 		return nil, fmt.Errorf("addin file not found in latest release")
 	}
-
 	// Download the Addin file
 	data, err := downloadFile(addinAsset)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading Addin: %v", err)
 	}
-
 	return data, nil
 }
-
 func downloadDLL(release Release) ([]byte, error) {
-
 	// Find the DLL asset
 	var dllAsset string
 	for _, asset := range release.Assets {
@@ -99,40 +142,33 @@ func downloadDLL(release Release) ([]byte, error) {
 			break
 		}
 	}
-
 	if dllAsset == "" {
 		return nil, fmt.Errorf("DLL file not found in latest release")
 	}
-
 	// Download the DLL file
 	data, err := downloadFile(dllAsset)
 	if err != nil {
 		return nil, fmt.Errorf("error downloading DLL: %v", err)
 	}
-
 	return data, nil
 }
 
 // Helper function to download a file
 func downloadFile(url string) ([]byte, error) {
-
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
 	// Check server response
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error downloading file: %s", resp.Status)
 	}
-
 	// Get bytes
 	byteData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
-
 	return byteData, nil
 }
