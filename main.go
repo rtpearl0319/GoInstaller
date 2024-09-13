@@ -3,14 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cespare/xxhash"
 	"io"
 	"net/http"
-	"os"
 )
 
 const (
-	owner = "YOUR_REPO_OWNER"
-	repo  = "YOUR_REPO_NAME"
+	owner     = "rtpearl0319"
+	repo      = "GoInstaller"
+	dllName   = "GPSrvtTab.dll"
+	addinName = "GPSrvtTab.addin"
 )
 
 type Release struct {
@@ -45,52 +47,92 @@ func main() {
 		return
 	}
 
+	// Download the Addin file
+	addinData, err := downloadAddin(release)
+	if err != nil {
+		fmt.Printf("Error downloading Addin: %v\n", err)
+		return
+	}
+
+	// Download the DLL file
+	dllData, err := downloadDLL(release)
+	if err != nil {
+		fmt.Printf("Error downloading DLL: %v\n", err)
+		return
+	}
+
+	hashAddin := xxhash.Sum64(addinData)
+	hashDll := xxhash.Sum64(dllData)
+}
+
+func downloadAddin(release Release) ([]byte, error) {
+
+	// Find the Addin asset
+	var addinAsset string
+	for _, asset := range release.Assets {
+		if asset.Name == addinName {
+			addinAsset = asset.BrowserDownloadURL
+			break
+		}
+	}
+
+	if addinAsset == "" {
+		return nil, fmt.Errorf("addin file not found in latest release")
+	}
+
+	// Download the Addin file
+	data, err := downloadFile(addinAsset)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading Addin: %v", err)
+	}
+
+	return data, nil
+}
+
+func downloadDLL(release Release) ([]byte, error) {
+
 	// Find the DLL asset
 	var dllAsset string
 	for _, asset := range release.Assets {
-		if asset.Name == "YOUR_DLL_FILE_NAME.dll" { // Replace with actual DLL file name
+		if asset.Name == dllName { // Replace with actual DLL file name
 			dllAsset = asset.BrowserDownloadURL
 			break
 		}
 	}
 
 	if dllAsset == "" {
-		fmt.Println("DLL file not found in latest release")
-		return
+		return nil, fmt.Errorf("DLL file not found in latest release")
 	}
 
 	// Download the DLL file
-	err = downloadFile("latest_release.dll", dllAsset)
+	data, err := downloadFile(dllAsset)
 	if err != nil {
-		fmt.Printf("Error downloading DLL: %v\n", err)
-		return
+		return nil, fmt.Errorf("error downloading DLL: %v", err)
 	}
 
-	fmt.Println("DLL downloaded successfully")
+	return data, nil
 }
 
 // Helper function to download a file
-func downloadFile(filepath string, url string) error {
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+func downloadFile(url string) ([]byte, error) {
 
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// Check server response
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error downloading file: %s", resp.Status)
+		return nil, fmt.Errorf("error downloading file: %s", resp.Status)
 	}
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
+	// Get bytes
+	byteData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return byteData, nil
 }
