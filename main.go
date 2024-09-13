@@ -85,7 +85,7 @@ func installAddin(addinData []byte) error {
 
 	for _, version := range versions {
 
-		if _, err := os.Stat(path.Join(addinsPath, version)); !os.IsNotExist(err) {
+		if _, err := os.Stat(path.Join(addinsPath, version)); os.IsNotExist(err) {
 			continue
 		}
 
@@ -107,20 +107,6 @@ func installAddin(addinData []byte) error {
 		}
 	}
 
-	/*if _, err := os.Stat(addinPath); !os.IsNotExist(err) {
-		dat, err := os.ReadFile(addinPath)
-		check(err)
-
-		hashAddinLocal := xxhash.Sum64(dat)
-
-		if hashAddinOnline == hashAddinLocal {
-			return nil
-		}
-	}
-	err := os.WriteFile(addinPath, addinData, 0644)
-	if err != nil {
-		return err
-	}*/
 	return nil
 }
 func installDLL(dllData []byte) error {
