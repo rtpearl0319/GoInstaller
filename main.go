@@ -82,7 +82,7 @@ func main() {
 		return
 	}
 
-	if err = installAddin(path.Join(revitPath+`Addins`), addinData); err != nil {
+	if err = installAddin(path.Join(revitPath, `Addins`), addinData); err != nil {
 		fmt.Printf("Error Installing Addin: %v\n", err)
 		return
 	}
