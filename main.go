@@ -117,7 +117,7 @@ func installAddin(addinsPath string, addinData []byte) error {
 				continue
 			}
 		}
-		if err := os.WriteFile(addinPath, addinData, 0644); err != nil {
+		if err := os.WriteFile(addinPath, addinData, 0777); err != nil {
 			return fmt.Errorf("error writing Addin file: %v", err)
 		}
 	}
@@ -129,7 +129,7 @@ func installDLL(dllsPath string, dllData []byte) error {
 	hashDllOnline := xxhash.Sum64(dllData)
 
 	if _, err := os.Stat(dllsPath); os.IsNotExist(err) {
-		err := os.Mkdir(dllsPath, 0755)
+		err := os.Mkdir(dllsPath, 0777)
 		if err != nil {
 			return fmt.Errorf("error creating DLL directory: %v", err)
 		}
@@ -150,7 +150,7 @@ func installDLL(dllsPath string, dllData []byte) error {
 		}
 	}
 
-	if err := os.WriteFile(dllPath, dllData, 0644); err != nil {
+	if err := os.WriteFile(dllPath, dllData, 0777); err != nil {
 		return fmt.Errorf("error writing DLL file: %v", err)
 	}
 
