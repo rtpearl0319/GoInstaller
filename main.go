@@ -14,12 +14,12 @@ import (
 const (
 	owner     = "rtpearl0319"
 	repo      = "GPSrvtTab"
-	dllName   = "GPSrvtTab.dll"
+	dllName   = "GPSrvtTabWrapper.dll"
 	addinName = "GPSTab.addin"
 )
 
 var (
-	versions = []string{"2024", "2023", "2022"}
+	versions = []string{"2025", "2024", "2023", "2022", "2021"}
 )
 
 type Release struct {
@@ -57,7 +57,9 @@ func main() {
 		fmt.Printf("Error fetching latest release: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Error: received non-OK HTTP status %d\n", resp.StatusCode)
@@ -213,7 +215,9 @@ func downloadFile(url string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error downloading file: %v\n", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	// Check server response
 	if resp.StatusCode != http.StatusOK {
