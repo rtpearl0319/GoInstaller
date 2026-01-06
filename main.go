@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	versions = []string{"2025", "2024", "2023", "2022", "2021"}
+	versions = []string{"2026", "2025", "2024", "2023", "2022", "2021"}
 )
 
 type Release struct {
